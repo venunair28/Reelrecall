@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Star, Plus, Check, Trash2, Loader2, Star as StarOutline, X } from 'lucide-react';
+import { ArrowLeft, Star, Plus, Check, Trash2, Loader as Loader2, Star as StarOutline, X, Bot } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { addToWatchlist, removeFromWatchlist, rateMovie, checkInWatchlist } from '@/lib/watchlist';
 import type { WatchlistItem } from '@/types';
+import ChatDrawer from '@/components/ChatDrawer';
 
 const TMDB_IMG_BASE = 'https://image.tmdb.org/t/p';
 
@@ -22,7 +23,7 @@ type MovieData = {
 export default function MovieDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [movie, setMovie] = useState<MovieData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export default function MovieDetails() {
   const [hoverRating, setHoverRating] = useState(0);
   const [selectedRating, setSelectedRating] = useState(0);
   const [savingRating, setSavingRating] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const tmdbId = id ? parseInt(id, 10) : 0;
 
@@ -198,6 +200,13 @@ export default function MovieDetails() {
               )}
 
               <div className="flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => setShowChat(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent-purple/15 border border-accent-purple/30 text-purple-200 font-medium text-sm hover:bg-accent-purple/25 transition"
+                >
+                  <Bot className="w-4 h-4" />
+                  Ask AI
+                </button>
                 {!inWatchlist ? (
                   <button
                     onClick={handleAdd}
@@ -235,6 +244,15 @@ export default function MovieDetails() {
           </div>
         </div>
       </div>
+
+      {showChat && session && (
+        <ChatDrawer
+          movieId={movie.tmdb_id}
+          movieTitle={movie.title}
+          accessToken={session.access_token}
+          onClose={() => setShowChat(false)}
+        />
+      )}
 
       {showRateOverlay && (
         <div

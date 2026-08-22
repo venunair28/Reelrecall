@@ -1,20 +1,27 @@
 import { useState } from 'react';
-import { Search, ImagePlus, Sparkles, X } from 'lucide-react';
+import { Search, ImagePlus, Sparkles, X, Loader as Loader2 } from 'lucide-react';
 import type { SearchMode } from '@/types';
 
 const MODE_CHIPS: SearchMode[] = ['Title', 'Actor', 'Story', 'Scene', 'Quote', 'Genre', 'Year', 'Image'];
 const MOOD_BUTTONS = ['Laugh', 'Think', 'Romance', 'Scare Me'] as const;
 const HINTS = ['Leo + dreams', 'movie where a man repeats a day'];
 
-export default function Sidebar() {
+type SidebarProps = {
+  onSearch: (query: string, mood?: string) => Promise<void>;
+};
+
+export default function Sidebar({ onSearch }: SidebarProps) {
   const [query, setQuery] = useState('');
   const [activeMode, setActiveMode] = useState<SearchMode>('Title');
   const [fileName, setFileName] = useState<string | null>(null);
-  const [comingSoon, setComingSoon] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function showComingSoon(label: string) {
-    setComingSoon(label);
-    window.setTimeout(() => setComingSoon(null), 2000);
+  async function runSearch(searchQuery: string, mood?: string) {
+    if (busy) return;
+    if (!searchQuery.trim() && !mood) return;
+    setBusy(true);
+    await onSearch(searchQuery, mood);
+    setBusy(false);
   }
 
   function handleFile(file: File | undefined) {
@@ -35,7 +42,7 @@ export default function Sidebar() {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && showComingSoon('Search')}
+            onKeyDown={(e) => e.key === 'Enter' && runSearch(query)}
             placeholder="Describe the movie you remember…"
             className="w-full pl-10 pr-4 py-3 rounded-xl bg-navy-850 border border-white/5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-accent-purple/50 focus:ring-2 focus:ring-accent-purple/20 transition"
           />
@@ -97,27 +104,22 @@ export default function Sidebar() {
           {HINTS.map((hint) => (
             <button
               key={hint}
-              onClick={() => { setQuery(hint); showComingSoon('Search'); }}
+              onClick={() => { setQuery(hint); runSearch(hint); }}
               className="px-3 py-1.5 rounded-lg text-xs text-slate-500 bg-navy-850/50 border border-white/5 hover:text-slate-300 hover:border-accent-purple/20 transition"
             >
-              "{hint}"
+              &ldquo;{hint}&rdquo;
             </button>
           ))}
         </div>
 
         <button
-          onClick={() => showComingSoon('Search')}
-          className="w-full py-3 rounded-xl gradient-accent text-white font-medium text-sm shadow-glow-purple hover:opacity-90 transition flex items-center justify-center gap-2"
+          onClick={() => runSearch(query)}
+          disabled={busy || !query.trim()}
+          className="w-full py-3 rounded-xl gradient-accent text-white font-medium text-sm shadow-glow-purple hover:opacity-90 disabled:opacity-50 transition flex items-center justify-center gap-2"
         >
-          <Sparkles className="w-4 h-4" />
-          Find My Movie
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+          {busy ? 'Finding movies…' : 'Find My Movie'}
         </button>
-
-        {comingSoon && (
-          <p className="text-xs text-center text-slate-500 mt-3 animate-fade-in">
-            {comingSoon} is coming in Sprint 2
-          </p>
-        )}
       </div>
 
       <div className="rounded-3xl bg-navy-900/60 border border-white/5 p-5">
@@ -126,8 +128,9 @@ export default function Sidebar() {
           {MOOD_BUTTONS.map((mood) => (
             <button
               key={mood}
-              onClick={() => showComingSoon(mood)}
-              className="py-2.5 rounded-xl bg-navy-850 border border-white/5 text-sm text-slate-400 hover:text-slate-200 hover:border-accent-purple/30 hover:bg-navy-800 transition-all"
+              onClick={() => runSearch('', mood)}
+              disabled={busy}
+              className="py-2.5 rounded-xl bg-navy-850 border border-white/5 text-sm text-slate-400 hover:text-slate-200 hover:border-accent-purple/30 hover:bg-navy-800 disabled:opacity-50 transition-all"
             >
               {mood}
             </button>
